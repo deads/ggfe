@@ -1,8 +1,14 @@
 # Grammar-Guided Feature Extraction (GGFE)
 #
-# Author: Damian Eads
+# Author:   Damian Eads
 #
-# Date:   August 2, 2009
+# File:     core.py
+#
+# Purpose:  This module contains functions and data structures for
+#           specifying generative grammars and generating features from
+#           grammars.
+#
+# Date:     August 2, 2009
 
 import types
 import string
