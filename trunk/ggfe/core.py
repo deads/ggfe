@@ -12,7 +12,18 @@
 
 import types
 import string
-import numpy as np
+
+def get_uniform_random_int_function():
+    """
+    Returns a function f(N) for generating random integers between 0 and N
+    inclusive.
+    """
+    try:
+        import numpy as np
+        return np.random.randint
+    except ImportError:
+        import random
+        return lambda x: random.randint
 
 class Environment:
     """
@@ -263,12 +274,13 @@ class Variable(RuleExpression):
     Represents local variables and production arguments.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, expandable=True):
         "Creates a new named variable object."
         RuleExpression.__init__(self)
         if type(name) != types.StringType:
             raise ValueError("The symbol's name must be a string.");
         self.name = name
+        self.expandable = expandable
 
     def get_name(self):
         "Returns the name of this local variable."
@@ -280,19 +292,22 @@ class Variable(RuleExpression):
     
     def count_local_references(self, cnt_dict):
         "Counts the total number times a variable is referenced in this rule expression before its expanded."
-        if self.name in cnt_dict:
-            cnt_dict[self.name] += 1
-        else:
-            cnt_dict[self.name] = 1
+        if self.expandable:
+            if self.name in cnt_dict:
+                cnt_dict[self.name] += 1
+            else:
+                cnt_dict[self.name] = 1
 
     def expand(self, environment):
         "Expands this rule expression. Any productions in this rule expression must expanded as well."
-        result = environment.globals_lookup(self.name)
-        if result is None:
-            result = environment.frame_lookup(self.name)
-
-        if result is None:
-            result = self
+        if self.expandable:
+            result = environment.globals_lookup(self.name)
+            if result is None:
+                result = environment.frame_lookup(self.name)
+            if result is None:
+                result = self
+        else:
+            return self
         return result
 
     def evaluate(self, environment):
@@ -497,8 +512,12 @@ class Expand(RuleExpression):
         """
         A parsable representation of this expansion expression.
         """
-        return "%s[%s]" % (self.get_production_name(),
-                           string.join([str(arg) for arg in self.get_arguments_to_pass()], ', '))
+        args_to_pass = self.get_arguments_to_pass()
+        if len(args_to_pass) > 0:
+            return "%s[%s]" % (self.get_production_name(),
+                               string.join([str(arg) for arg in args_to_pass], ', '))
+        else:
+            return "%s[...]" % (self.get_production_name())
     
 class Production:
     """
@@ -578,7 +597,10 @@ class Production:
         Returns a string representation of this production, usually in the
         same syntax as used to parse it.
         """
-        return "%s[%s] = %s" % (self.name, string.join([str(arg) for arg in self.arg_names], ","), string.join([str(rule) for rule in self.rules], " | "))
+        if len(self.arg_names) == 0:
+            return "%s[...] = %s" % (self.name, string.join([str(rule) for rule in self.rules], " | "))
+        else:
+            return "%s[%s] = %s" % (self.name, string.join([str(arg) for arg in self.arg_names], ","), string.join([str(rule) for rule in self.rules], " | "))
 
 
     def __call__(self, *called_args, **kwargs):
@@ -588,7 +610,7 @@ class Production:
         names defined for this production.
         """
     
-        rule_no = np.random.randint(len(self.rules))
+        rule_no = self.grammar.rf(len(self.rules))
         rule = self.rules[rule_no]
         
         environment = kwargs.get("environment", None)
@@ -615,11 +637,11 @@ class Production:
             else:
                 context[argname.get_name()] = called_arg
 
-        print context
+        #print context
         # A lambda expression will be used only if computation needs to be reused.
         lambda_needed = False
         for v in cnts.keys():
-            print v, context[v].__class__, cnts[v]
+            #print v, context[v].__class__, cnts[v]
             if not isinstance(context[v], Variable) and v in context.keys() and cnts[v] > 1: 
                 lambda_needed = True
         
@@ -649,6 +671,8 @@ class Grammar:
         """
         self.name = name
         self.prods = {}
+        # Grab the uniform random number generator for integers.
+        self.rf = get_uniform_random_int_function()
 
     def add_production(self, prod):
         """
@@ -739,12 +763,12 @@ def functions(op_name_list, module=None):
     return [Function(arg, module=module) for arg in op_name_list]
 
 
-def variables(variable_names):
+def variables(variable_names, expandable=True):
     """
     Defines several Variable objects at once.
     """
     L = []
     for varname in variable_names:
-        var = Variable(varname)
+        var = Variable(varname, expandable=expandable)
         L.append(var)
     return L
