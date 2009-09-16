@@ -16,7 +16,7 @@ import scipy.ndimage as ndi
 from numpy import matrix
 
 from core import variables, functions, Variable, Grammar, Environment
-
+    
 def erode(I, struct):
     "Performs a morphological erosion."
     return ndi.grey_erosion(I, footprint=struct)
@@ -142,6 +142,17 @@ def gabor_sum_squared(X, angle, size, ratio, period, sigma, Trig):
     gkcos = gabor_kernel(angle, size, ratio, period, sigma, np.cos)
     gksin = gabor_kernel(angle, size, ratio, period, sigma, np.sin)
     return np.sqrt(convolve(X, gkcos) ** 2. + convolve(X, gksin) ** 2.)
+
+def rand1n(n):
+    "Generates a random integer between 1 and n (exclusive)."
+    return np.random.randint(n)+1
+
+def rand0n(n):
+    "Generates a random integer between 0 and n (exclusive)."
+    if n == 0:
+        return 0
+    else:
+        return np.random.randint(n)
 
 def get_image_grammar():
     "Returns the grammar used in the BMVC paper."
