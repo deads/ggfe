@@ -16,6 +16,13 @@ import scipy.ndimage as ndi
 from numpy import matrix
 
 from core import variables, functions, Variable, Grammar, Environment
+
+import haar
+
+try:
+    import _ggfe_image_wrap
+except ImportError:
+    pass
     
 def erode(I, struct):
     "Performs a morphological erosion."
@@ -154,7 +161,39 @@ def rand0n(n):
     else:
         return np.random.randint(n)
 
-def get_image_grammar():
+def vj1x2(w, h):
+    "Generates a random 1x2 Viola and Jones kernel."
+    return haar.get_kernel_string(haar.Haar2Horizontal(w, h).get_random_rectangles())
+
+def vj2x1(w, h):
+    "Generates a random 2x1 Viola and Jones kernel."
+    return haar.get_kernel_string(haar.Haar2Vertical(w, h).get_random_rectangles())
+
+def vj1x3(w, h):
+    "Generates a random 1x3 Viola and Jones kernel."
+    return haar.get_kernel_string(haar.Haar3Horizontal(w, h).get_random_rectangles())
+
+def vj3x1(w, h):
+    "Generates a random 3x1 Viola and Jones kernel."
+    return haar.get_kernel_string(haar.Haar3Vertical(w, h).get_random_rectangles())
+
+def vj2x2(w, h):
+    "Generates a random 2x2 Viola and Jones kernel."
+    return haar.get_kernel_string(haar.Haar4(w, h).get_random_rectangles())
+
+def integral_image(I):
+    "Computes the integral image of an image."
+    _I = np.zeros(I.shape, dtype='f')
+    _I[:] = I
+    return _ggfe_image_wrap.compute_integral_image_wrap(_I)
+
+def viola_jones(II, s):
+    "Given a rectangle specification string s, computes the integral image."
+    _II = np.zeros(II.shape, dtype='f')
+    _II[:] = II
+    return _ggfe_image_wrap.apply_kernel_to_image_wrap(_II, s)
+
+def get_image_grammar(ViolaJonesWidth=24, ViolaJonesHeight=24):
     "Returns the grammar used in the BMVC paper."
     import image_features
     reload(image_features)
@@ -171,6 +210,7 @@ def get_image_grammar():
 
     Laws, LawsMask = grammar.productions(["Laws", "LawsMask"])
 
+
     erode, dilate, open, close, sigmoid, gabor = \
           functions(["erode", "dilate", "open", "close", "sigmoid", "gabor"],
                      module=image_features)
@@ -186,12 +226,12 @@ def get_image_grammar():
             functions(["normal", "random", "randint", "transpose", "dot"],
                       module=np.random)
 
-    X, Y, S = variables(["X", "Y", "S"])
+    X, Y, S, W, H = variables(["X", "Y", "S", "W", "H"])
 
     pi, sin, cos = variables(["pi", "sin", "cos"], expandable=False)
 
     E5, L5, S5, R5, W5 = variables(["E5", "L5", "S5", "R5", "W5"], expandable=False)
-    
+
     Feature[X] = (Binary[Unary[X], Unary[X]]
                   | NLUnary[Unary[X]]
                   | NLBinary[Unary[X], Unary[X]]
@@ -213,6 +253,21 @@ def get_image_grammar():
     LUnary[X] = (Laws[X]
                  | laplace(X, ~normal() * 3)
                  | Gabor[X])
+
+    Morph[X,S] = (erode(X, S) |
+                  dilate(X, S) |
+                  open(X, S) |
+                  close(X, S))
+    
+    Compound[X] = (Unary[X]
+                   | Binary[X, Compound[X]])
+
+    NLBinary[X, Y] = (mult(X, Y)
+                      | normDiff(X, Y))
+    
+    LBinary[X, Y] = (scaledSub(X, Y)
+                     | blend(X, Y))
+
 
     Gabor[X] = (
                gabor(X,
@@ -236,26 +291,35 @@ def get_image_grammar():
                           ((1 + ~randint(7)) * 2 + 1),
                           (10 ** (~random() * 2 - 1)))
 
-
-    Morph[X,S] = (erode(X, S) |
-                  dilate(X, S) |
-                  open(X, S) |
-                  close(X, S))
-    
-    Compound[X] = (Unary[X]
-                   | Binary[X, Compound[X]])
-
-    NLBinary[X, Y] = (mult(X, Y)
-                      | normDiff(X, Y))
-    
-    LBinary[X, Y] = (scaledSub(X, Y)
-                     | blend(X, Y))
     
     LawsMask[...] = L5 | E5 | S5 | R5 | W5
     
     Laws[X] = convolve(X, dot(transpose(LawsMask[...]), LawsMask[...]))
     
     TrigFun[...] = sin | cos
+
+    # See if the C++ implementation of the Viola and Jones feature set
+    # is available. If so, incorporate them into the grammar.
+    try:
+        import _ggfe_image_wrap
+        ViolaJones, KernelString = grammar.productions(["ViolaJones", "KernelString"])
+        LUnary += ViolaJones[X]
+
+        viola_jones, integral_image = \
+               functions(["viola_jones", "integral_image"])
+        vj1x2, vj2x1, vj1x3, vj3x1, vj2x2 = \
+               functions(["vj1x2", "vj2x1", "vj1x3", "vj3x1", "vj2x2"],
+                         module=image_features)
+        
+        KernelString[...] = (~vj1x2(ViolaJonesWidth, ViolaJonesHeight)
+                             | ~vj2x1(ViolaJonesWidth, ViolaJonesHeight)
+                             | ~vj1x3(ViolaJonesWidth, ViolaJonesHeight)
+                             | ~vj3x1(ViolaJonesWidth, ViolaJonesHeight)
+                             | ~vj2x2(ViolaJonesWidth, ViolaJonesHeight))
+        
+        ViolaJones[X] = viola_jones(integral_image(X), KernelString[...])
+    except ImportError:
+        pass
     
     return grammar
 
