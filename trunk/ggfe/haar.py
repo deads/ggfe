@@ -106,7 +106,7 @@ class Haar2Horizontal(Haar):
              a horizontal pair of rectangles.
         """
         Haar.__init__(self, W, H)
-        self.hW = np.floor(W/2.0)
+        self.hW = np.floor_divide(W, 2.0)
         self.ws = np.arange(1, (self.hW+1)) * 2.0
         self.hs = np.arange(1, (self.H+1))
 

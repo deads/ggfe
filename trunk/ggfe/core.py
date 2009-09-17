@@ -184,7 +184,7 @@ class RuleExpression:
         This method catches division.
         """
         if not isinstance(rhs, RuleExpression):
-            lhs = LiteralExpression(rlhs)
+            lhs = LiteralExpression(rhs)
         return BinaryExpression('/', self, rhs)
 
     def __rdiv__(self, lhs):
@@ -404,7 +404,7 @@ class LiteralExpression(RuleExpression):
         """
         Returns a parsable representation of this literal object.
         """
-        return str(self.val)
+        return repr(self.val)
 
 class CallFunction(RuleExpression):
 
@@ -455,7 +455,7 @@ class CallFunction(RuleExpression):
 
     def __repr__(self):
         "Return a string representation of this function call expression."
-        return "%s(%s)" % (self.fun.name, string.join((str(arg) for arg in self.args), ", "))
+        return "%s(%s)" % (self.fun.name, string.join((repr(arg) for arg in self.args), ", "))
         
 class Expand(RuleExpression):
     """
@@ -544,6 +544,14 @@ class Production:
         Returns the name of this production.
         """
         return self.name
+
+    def __iadd__(self, rhs):
+        if isinstance(rhs, RuleList):
+            self.rules.extend(rhs)
+        elif isinstance(rhs, RuleExpression):
+            self.rules.append(rhs)
+        else:
+            self.rules.append(LiteralExpression(rhs))
 
     def __setitem__(self, idx, rules_to_add):
         """
@@ -685,7 +693,6 @@ class Grammar:
             raise ValueError("Production has illegal name: %s" % pname)
         self.__dict__[pname] = prod
         self.prods[prod.get_name()] = prod
-
 
     def has_production(self, name):
         """
