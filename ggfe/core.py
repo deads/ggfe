@@ -605,6 +605,8 @@ class Production:
         Returns a string representation of this production, usually in the
         same syntax as used to parse it.
         """
+        if self.arg_names is None:
+            self.arg_names = []
         if len(self.arg_names) == 0:
             return "%s[...] = %s" % (self.name, string.join([str(rule) for rule in self.rules], " | "))
         else:

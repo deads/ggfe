@@ -332,3 +332,12 @@ def generate_and_evaluate(grammar, IMG):
     feature = grammar.Feature(Variable('IMG'))
     print 'Evaluating random feature: ', str(feature)
     return eval(str(feature))
+
+def evaluate_feature(grammar, program_string, IMG):
+    """
+    Generate a random feature from the grammar passed and evaluate it
+    on the image ``IMG``.
+    """
+    from numpy import pi, sin, cos, dot, transpose
+    return eval(program_string)
+
