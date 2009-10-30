@@ -9,3 +9,4 @@
 # Date:     August 8, 2009
 
 from core import *
+import random_hypotheses

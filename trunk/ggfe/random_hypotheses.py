@@ -28,4 +28,6 @@ def artificial_hits(sz, centers, hit_spread_max, num_misses=0, num_false_alarms=
 
     artificial_hits = vstack([artificial_hits, false_alarms])
     confidences = hstack([confidences, fa_confidences])
-    return (np.array(artificial_hits), np.array(confidences))
+
+    print "SSS", confidences.shape
+    return (np.array(artificial_hits, dtype='i'), np.array(confidences, dtype='d'))
