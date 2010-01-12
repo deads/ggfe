@@ -193,6 +193,33 @@ def viola_jones(II, s):
     _II[:] = II
     return _ggfe_image_wrap.apply_kernel_to_image_wrap(_II, s)
 
+def get_haar_grammar(ViolaJonesWidth=24, ViolaJonesHeight=24):
+    "Returns the grammar used."
+    import image_features
+    reload(image_features)
+
+    grammar = Grammar("haar")
+
+    Feature, ViolaJones, KernelString = grammar.productions(["Feature", "ViolaJones",
+                                                     "KernelString"])
+    X, Y = variables(["X", "Y"])
+    viola_jones, integral_image = \
+        functions(["viola_jones", "integral_image"], module=image_features)
+    vj1x2, vj2x1, vj1x3, vj3x1, vj2x2 = \
+        functions(["vj1x2", "vj2x1", "vj1x3", "vj3x1", "vj2x2"],
+                  module=image_features)
+        
+    KernelString[...] = (~vj1x2(ViolaJonesWidth, ViolaJonesHeight)
+                          | ~vj2x1(ViolaJonesWidth, ViolaJonesHeight)
+                          | ~vj1x3(ViolaJonesWidth, ViolaJonesHeight)
+                          | ~vj3x1(ViolaJonesWidth, ViolaJonesHeight)
+                          | ~vj2x2(ViolaJonesWidth, ViolaJonesHeight))
+    
+    ViolaJones[X] = viola_jones(integral_image(X), KernelString[...])
+    
+    Feature[X] = ViolaJones[X]
+    return grammar
+
 def get_image_grammar(ViolaJonesWidth=24, ViolaJonesHeight=24):
     "Returns the grammar used in the BMVC paper."
     import image_features
@@ -333,7 +360,7 @@ def generate_and_evaluate(grammar, IMG):
     print 'Evaluating random feature: ', str(feature)
     return eval(str(feature))
 
-def evaluate_feature(grammar, program_string, IMG):
+def evaluate_feature(program_string, IMG):
     """
     Generate a random feature from the grammar passed and evaluate it
     on the image ``IMG``.
