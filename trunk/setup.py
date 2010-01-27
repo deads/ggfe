@@ -8,7 +8,7 @@ ext_modules = []
 ext_modules.append(Extension('_ggfe_image_wrap',
                              ['ggfe/ggfe_image_wrap.cpp', 'ggfe/viola_jones.cpp'],
                              extra_link_args = extra_link_args,
-                             include_dirs=['../convert-xy/'],
+                             include_dirs=['../convert-xy/1.x'],
                              libraries=['m', 'cvd']))
 
 setup(name='ggfe',
