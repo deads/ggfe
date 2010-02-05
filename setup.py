@@ -1,5 +1,7 @@
-from distutils.core import setup, Extension
+from numpy.distutils.core import setup, Extension
 import sys, os, os.path, string
+
+extra_link_args = []
 
 if sys.platform != 'darwin':
     extra_link_args = ['-s']
