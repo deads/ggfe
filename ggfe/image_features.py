@@ -194,7 +194,7 @@ def viola_jones(II, s):
     return _ggfe_image_wrap.apply_kernel_to_image_wrap(_II, s)
 
 def get_haar_grammar(ViolaJonesWidth=24, ViolaJonesHeight=24):
-    "Returns the grammar used."
+    "Returns a grammar that just generates random features. Caveat: they are not generated uniformly."
     import image_features
     reload(image_features)
 
@@ -216,6 +216,36 @@ def get_haar_grammar(ViolaJonesWidth=24, ViolaJonesHeight=24):
                           | ~vj2x2(ViolaJonesWidth, ViolaJonesHeight))
     
     ViolaJones[X] = viola_jones(integral_image(X), KernelString[...])
+    
+    Feature[X] = ViolaJones[X]
+    return grammar
+
+def get_haar_string_grammar(ViolaJonesWidth=24, ViolaJonesHeight=24):
+    """
+    Returns a grammar that just generates the kernel string for Haar features.
+    Caveat: they are not generated uniformly.
+    """
+    import image_features
+    reload(image_features)
+
+    grammar = Grammar("haar-str")
+
+    Feature, ViolaJones, KernelString = grammar.productions(["Feature", "ViolaJones",
+                                                     "KernelString"])
+    X, Y = variables(["X", "Y"])
+    viola_jones, integral_image = \
+        functions(["viola_jones", "integral_image"], module=image_features)
+    vj1x2, vj2x1, vj1x3, vj3x1, vj2x2 = \
+        functions(["vj1x2", "vj2x1", "vj1x3", "vj3x1", "vj2x2"],
+                  module=image_features)
+        
+    KernelString[...] = (~vj1x2(ViolaJonesWidth, ViolaJonesHeight)
+                          | ~vj2x1(ViolaJonesWidth, ViolaJonesHeight)
+                          | ~vj1x3(ViolaJonesWidth, ViolaJonesHeight)
+                          | ~vj3x1(ViolaJonesWidth, ViolaJonesHeight)
+                          | ~vj2x2(ViolaJonesWidth, ViolaJonesHeight))
+    
+    ViolaJones[X] = KernelString[...]
     
     Feature[X] = ViolaJones[X]
     return grammar
