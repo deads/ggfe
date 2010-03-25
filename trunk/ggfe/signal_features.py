@@ -205,3 +205,92 @@ def generate_and_evaluate(grammar, SIG):
     feature = grammar.Feature(Variable('SIG'))
     print 'Evaluating random feature: ', str(feature)
     return eval(str(feature))
+
+def eval_feature(program_string, SIG):
+    from numpy import pi, sin, cos, dot, transpose, nan_to_num
+    return eval(program_string)
+
+def eval_stump(X, thresh, dir):
+    if dir:
+        return X >= thresh
+    else:
+        return X < thresh
+
+def compute_werror(Yh, Y, Dt):
+    return np.dot(Yh == Y, Dt).sum()
+
+def dstump_find(X, Y, Dt):
+    n = X.shape
+    uX = np.unique(X)
+    best_werror = np.dot(Y == 0, Dt)
+    best_thresh = np.inf
+    best_dir = True
+    best_prev_thresh = None
+    prev_thresh = None
+    nT = uX.shape[0]
+    for i in xrange(0, nT):
+        thresh = uX[i]
+        #print thresh
+        if i+1 < nT:
+            next_thresh = uX[i+1]
+        else:
+            next_thresh = None
+        preds = eval_stump(X, thresh, True)
+        werror = np.dot(preds != Y, Dt).sum()
+        if werror < best_werror:
+            best_thresh = thresh
+            best_prev_thresh = prev_thresh
+            best_werror = werror
+            best_dir = True
+        preds = eval_stump(X, thresh, False)
+        werror = np.dot(preds != Y, Dt).sum()
+        if werror < best_werror:
+            best_thresh = thresh
+            best_prev_thresh = next_thresh
+            best_werror = werror
+            best_dir = False
+        prev_thresh = thresh
+    if best_prev_thresh is not None:
+        best_thresh = (best_thresh + best_prev_thresh) / 2.0
+        if best_dir:
+            best_werror = np.dot((X >= best_thresh) != Y, Dt).sum()
+        else:
+            best_werror = np.dot((X < best_thresh) != Y, Dt).sum()
+    hyp = {}
+    hyp["thresh"] = best_thresh
+    hyp["dir"] = best_dir
+    hyp["werror"] = best_werror
+    return hyp
+
+def get_alpha(werror):
+    return .5 * np.log((1. - werror) / werror)
+
+def adaboost_learn(grammar, X, Y, iterations, features_per_iteration):
+    hypotheses = []
+    n, m = X.shape
+    Dt = np.ones((n,)) / n
+    for it in xrange(0, iterations):
+        best_werror = 1.0
+        best_hypothesis = None
+        best_result = None
+        fnum = 0
+        while best_werror >= 0.5 or fnum < features_per_iteration:
+            feature = str(grammar.Feature(Variable('SIG')))
+            result = eval_feature(feature, X)
+            whyp = dstump_find(result, Y, Dt)
+            print "It %d Feature %d Program %s WError: %5.8f Best WError: %5.8f" % (it, fnum, feature, whyp["werror"], best_werror)
+            if whyp["werror"] < best_werror:
+                best_werror = whyp["werror"]
+                alpha = get_alpha(best_werror)
+                best_hypothesis = whyp
+                whyp["alpha"] = alpha
+                best_result = result
+            fnum += 1
+        hypotheses.append(best_hypothesis)
+        Yh = eval_stump(best_result, best_hypothesis["thresh"], best_hypothesis["dir"])
+        Dt[(Yh == Y).ravel()] *= np.exp(-best_hypothesis["alpha"])
+        Dt[(Yh != Y).ravel()] *= np.exp(best_hypothesis["alpha"])
+        Dt /= Dt.sum()
+        
+    return hypotheses
+            
