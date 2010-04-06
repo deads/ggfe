@@ -501,7 +501,9 @@ class Expand(RuleExpression):
                 expanded_args.append(expanded_arg)
             else:
                 expanded_args.append(LiteralExpression(arg))
-        return self.prod(*tuple(expanded_args), environment=environment)
+        expanded_args = tuple(expanded_args)
+        kw = {'environment': environment}
+        return self.prod(*expanded_args, **kw)
 
     def count_local_references(self, cnt_dict):
         "Counts the total number times a variable is referenced in this rule expression prior to its expansion."
