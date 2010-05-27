@@ -16,6 +16,30 @@ using namespace PyCPP;
 
 extern "C" {
 
+  PyObject *img_load(PyObject *self, PyObject *args) {
+    PyObject *_out;
+    char *filename;
+    if (!PyArg_ParseTuple(args, "s", &filename)) {
+      return 0;
+    }
+    try {
+      //BasicImage<double> in(0, ImageRef(width, height));
+
+      Image <double> out(img_load(filename));
+      convert(out, _out);
+      return (PyObject*)_out;
+    }
+    catch(string err) {
+      PyErr_SetString(PyExc_RuntimeError, err.c_str());
+      return 0;
+    }
+    catch(CVD::Exceptions::All &err) {
+      PyErr_SetString(PyExc_RuntimeError, err.what.c_str());
+      return 0;
+    }
+    return (PyObject*)_out;
+  }
+
   PyObject *compute_integral_image_wrap(PyObject *self, PyObject *args) {
     PyArrayObject *_in, *_out;
     if (!PyArg_ParseTuple(args, "O!", &PyArray_Type, &_in)) {
@@ -72,6 +96,7 @@ extern "C" {
   }
 
   static PyMethodDef _ggfe_image_wrap_methods[] = {
+    {"img_load", img_load, METH_VARARGS},
     {"compute_integral_image_wrap", compute_integral_image_wrap, METH_VARARGS},
     {"apply_kernel_to_image_wrap", apply_kernel_to_image_wrap, METH_VARARGS},
     {NULL, NULL}
