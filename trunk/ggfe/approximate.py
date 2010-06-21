@@ -41,6 +41,7 @@ def integrand_quad(d):
                         gquad(np.sqrt((x + (d / 2.)) ** 2. + y ** 2.))
 
 def C(u, v, r, kernel='conic'):
+    "Computes the total overlap of two kernels with centers u and v and radius r."
     d = np.sqrt(np.dot(u - v, u - v)) / r
     beta = np.sqrt((4 - d ** 2.) / 2.)
     gfun = lambda x: 0.
