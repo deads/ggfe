@@ -50,7 +50,7 @@ def get_label_dictionary():
               "rbrow": ["orbrow","irbrow"],
               "olbrow": [6],
               "olbrow": [7],
-              "rbrow": ["olbrow","ilbrow"],
+              "lbrow": ["olbrow","ilbrow"],
               "rtemple": [8],
               "ocreye": [9],
               "icreye": [10],
