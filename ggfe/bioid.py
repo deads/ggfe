@@ -134,7 +134,6 @@ def get_indices(keyword):
                 raise ValueError("convert_points.py: unknown keyword '%s'" % keyword)
         return indices
 
-
 def filter_points_by_index(pts, indices):
     """
     Given a full list of points containing all the facial points marked
